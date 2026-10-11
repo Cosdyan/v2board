@@ -8,10 +8,11 @@ COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
 WORKDIR /var/www/html
 COPY . .
 RUN composer install --no-dev --no-interaction --prefer-dist --optimize-autoloader --no-progress \
- && mkdir -p storage/logs storage/framework/{cache/data,sessions,views} bootstrap/cache \
+ && mkdir -p storage/logs storage/framework/cache/data storage/framework/sessions storage/framework/views bootstrap/cache \
  && chown -R www-data:www-data storage bootstrap/cache \
  && chmod -R ug+rwX storage bootstrap/cache \
- && rm -f /etc/nginx/sites-enabled/default
+ && rm -f /etc/nginx/sites-enabled/default \
+ && echo "expose_php=Off" > /usr/local/etc/php/conf.d/security.ini
 COPY docker/nginx.conf /etc/nginx/conf.d/v2board.conf
 COPY docker/supervisord.conf /etc/supervisor/conf.d/v2board.conf
 EXPOSE 8080
