@@ -6,19 +6,20 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 class DockerBootstrap extends Command {
-    protected $signature = 'docker:bootstrap {--email=} {--password=}';
+    protected $signature = 'docker:bootstrap';
     protected $description = 'Initialize empty V2Board Docker database once';
     public function handle() {
-        $email = $this->option('email');
-        $password = $this->option('password');
+        $email = getenv('BOOTSTRAP_ADMIN_EMAIL');
+        $password = getenv('BOOTSTRAP_ADMIN_PASSWORD');
         if (!filter_var($email, FILTER_VALIDATE_EMAIL) || strlen((string)$password) < 12) {
             $this->error('Valid --email and at least 12-character --password required.');
             return 1;
         }
         try {
             DB::connection()->getPdo();
-            if (Schema::hasTable('v2_user')) {
-                $this->error('Existing v2_user table: refusing to overwrite database.');
+            $tableCount = DB::selectOne("SELECT COUNT(*) AS total FROM information_schema.tables WHERE table_schema = DATABASE()");
+            if ((int)$tableCount->total > 0) {
+                $this->error('Database already contains tables: refusing destructive SQL import.');
                 return 1;
             }
             $sql = file_get_contents(database_path('install.sql'));
