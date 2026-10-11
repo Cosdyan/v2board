@@ -169,6 +169,23 @@ return [
     */
 
     'environments' => [
+        'production' => [
+            'V2board' => [
+                'connection' => 'redis',
+                'queue' => [
+                    'order_handle',
+                    'traffic_fetch',
+                    'send_email',
+                    'send_email_mass',
+                    'send_telegram',
+                ],
+                'balance' => 'auto',
+                'minProcesses' => 1,
+                'maxProcesses' => 6,
+                'tries' => 1,
+                'balanceCooldown' => 3,
+            ],
+        ],
         'local' => [
             'V2board' => [
                 'connection' => 'redis',
