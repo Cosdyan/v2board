@@ -12,11 +12,16 @@ ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 for c in docker git openssl; do command -v "$c" >/dev/null || { echo "缺少 $c，请先安装"; exit 1; }; done
 docker compose version >/dev/null || { echo "需要 Docker Compose v2"; exit 1; }
 [[ "$HTTP_PORT" =~ ^[0-9]+$ ]] && (( HTTP_PORT >= 1 && HTTP_PORT <= 65535 )) || { echo "HTTP_PORT 不合法"; exit 1; }
+if [[ -d "$DIR/.git" ]]; then
+  echo "目录已经存在 Git 仓库：$DIR；一键脚本仅支持首次安装，不会自动拉取/覆盖源码。"
+fi
 if [[ ! -d "$DIR/.git" ]]; then
   [[ ! -e "$DIR" ]] || { echo "$DIR 已存在而非 Git 仓库，拒绝覆盖"; exit 1; }
   git clone --depth 1 --branch "$BRANCH" "$REPO_URL" "$DIR"
 fi
 cd "$DIR"
+origin="$(git remote get-url origin)"
+[[ "$origin" == "$REPO_URL" || "$origin" == "https://github.com/Cosdyan/v2board" ]] || { echo "拒绝操作非 Cosdyan/v2board 仓库：$origin"; exit 1; }
 if [[ -f .env ]]; then
   echo "检测到已有 .env，拒绝重复初始化；更新请执行 docker compose up -d --build"
   exit 1
@@ -63,7 +68,7 @@ docker compose up -d db redis
 echo "构建应用镜像 ..."
 docker compose build app
 echo "初始化数据库 ..."
-docker compose run --rm -T app php artisan docker:bootstrap --email="$ADMIN_EMAIL" --password="$ADMIN_PASSWORD"
-docker compose up -d --no-build
+docker compose run --rm -T -e BOOTSTRAP_ADMIN_EMAIL="$ADMIN_EMAIL" -e BOOTSTRAP_ADMIN_PASSWORD="$ADMIN_PASSWORD" app php artisan docker:bootstrap
+docker compose up -d --no-build\ndocker compose ps
 printf '\n部署完成！\n站点: %s\n管理员: %s\n初始密码: %s\n目录: %s\n' "$APP_URL" "$ADMIN_EMAIL" "$ADMIN_PASSWORD" "$DIR"
 echo "请妥善保存密码，并配置 HTTPS 反向代理。"
