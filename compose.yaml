@@ -1,0 +1,55 @@
+name: v2board
+x-app: &app
+  build: .
+  image: v2board-local:latest
+  env_file: .env
+  volumes:
+    - ./.env:/var/www/html/.env:ro
+    - app_storage:/var/www/html/storage
+  depends_on:
+    db:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  restart: unless-stopped
+services:
+  app:
+    <<: *app
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-8080}:8080"
+  worker:
+    <<: *app
+    command: ["php", "artisan", "horizon"]
+  scheduler:
+    <<: *app
+    command: ["sh", "-c", "while true; do php artisan schedule:run --no-interaction; sleep 60; done"]
+  db:
+    image: mariadb:10.11
+    environment:
+      MARIADB_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:?set DB_ROOT_PASSWORD}
+      MARIADB_DATABASE: ${DB_DATABASE:-v2board}
+      MARIADB_USER: ${DB_USERNAME:-v2board}
+      MARIADB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 25
+    restart: unless-stopped
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+volumes:
+  mysql_data:
+  redis_data:
+  app_storage:
