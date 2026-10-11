@@ -22,3 +22,15 @@ Thanks to the open source project license provided by [Jetbrains](https://www.je
 
 ## How to Feedback
 Follow the template in the issue to submit your question correctly, and we will have someone follow up with you.
+
+
+## Docker Compose 一键部署（Cosdyan Fork）
+
+需要 Docker Engine、Docker Compose v2、Git、OpenSSL：
+
+```bash
+curl -fsSLo install-v2board.sh https://raw.githubusercontent.com/Cosdyan/v2board/master/docker/install.sh
+sudo bash install-v2board.sh
+```
+
+安装说明：[`docker/INSTALL.md`](docker/INSTALL.md)。默认仅监听 `127.0.0.1:8080`，请配置 HTTPS 反向代理。
