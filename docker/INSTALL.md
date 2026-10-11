@@ -43,3 +43,27 @@ docker compose up -d --build
 更新前备份 `.env` 和所有 Docker 数据卷。生产环境必须配置 HTTPS、SMTP、备份和访问控制。不要直接公开 MariaDB 和 Redis。部署脚本目前只用于**全新实例**，不是现有手动部署站点的自动迁移工具。
 
 **验证范围：** 已检查 Bash、PHP 文件基本语法及 Compose YAML 解析；尚未在实际运行 Docker 的服务器上完成镜像构建、MySQL 初始化及网页端到端验证。
+
+## 优化与注意事项
+
+- 已修复 PHP 镜像中 `/bin/sh` 不支持 Bash 花括号目录展开的问题，确保 `storage/framework/cache/data`、`sessions`、`views` 被正确创建。
+- 初始化管理员账号的邮箱及密码通过临时容器环境变量提供，不再作为 `php artisan` 的命令行参数传入。
+- 数据库只允许在**完全没有表**时导入 `database/install.sql`，因为原始 SQL 含 `DROP TABLE IF EXISTS`，严禁拿此脚本直接迁移已有站点。
+- 安装器会验证本地 Git 仓库的远程地址，避免误对其他项目执行部署。
+- 新增 GitHub Actions 的 Docker YAML、Bash、PHP 静态验证。
+
+### 首次部署失败恢复
+
+若容器启动失败，可以先检查：
+
+```bash
+cd /opt/v2board-docker
+docker compose ps
+docker compose logs --tail=150 app db worker scheduler
+```
+
+**不要直接执行 `docker compose down -v`**，该命令会永久删除 MariaDB、Redis 和应用存储卷。首次初始化若已经部分创建表，则需要人工检查数据库并恢复到可信的空库或备份后再初始化；不要覆盖已有数据。
+
+### 当前限制
+
+目前未完成实际容器镜像构建及端到端业务测试。本方案需要已安装的 Docker Engine / Compose v2；不自动安装 Docker。默认只开放回环地址 `127.0.0.1:8080`，域名与 HTTPS 反向代理需要自行配置。原仓库未固定 `composer.lock`，未来依赖解析可能随第三方版本变化；生产部署推荐验证通过后锁定依赖及镜像版本。
