@@ -1,0 +1,33 @@
+name: Validate Docker Deployment
+on:
+  push:
+    branches: [master]
+    paths:
+      - Dockerfile
+      - compose.yaml
+      - docker/**
+      - app/Console/Commands/DockerBootstrap.php
+      - .github/workflows/docker-validate.yml
+  workflow_dispatch:
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Syntax validation
+        run: |
+          bash -n docker/install.sh
+          php -l app/Console/Commands/DockerBootstrap.php
+      - name: Compose configuration validation
+        env:
+          DB_ROOT_PASSWORD: test-root-value
+          DB_PASSWORD: test-db-value
+        run: |
+          cp .env.example .env
+          docker compose config -q
+          rm -f .env
+      - name: Dockerfile check
+        run: |
+          test -s Dockerfile
+          test -s docker/nginx.conf
+          test -s docker/supervisord.conf
