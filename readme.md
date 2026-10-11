@@ -64,3 +64,14 @@ sudo bash install-v2board.sh
 ```
 
 安装说明：[`docker/INSTALL.md`](docker/INSTALL.md)。默认仅监听 `127.0.0.1:8080`，请配置 HTTPS 反向代理。
+
+### 3. 自动编译与 GitHub Release
+
+参考 [V2Board 1.7.4 原版发布](https://github.com/v2board/v2board/releases/tag/1.7.4)（原版 Release 不附带独立二进制文件），本 Fork 使用 GitHub Actions 自动编译完整的 PHP Docker 镜像，并生成包含 Composer `vendor/` 依赖和已有前端静态资源的 `v2board-deploy.zip`。
+
+- 提交到 `master` 或在 Actions 中手动运行 **Build V2Board Docker and Release**：构建并发布 `ghcr.io/cosdyan/v2board:latest`，同时生成 Actions 构建附件（保留 30 天）。
+- 推送 `v...` 或数字版本标签（例如 `v1.7.4-cosdyan`）：还会自动创建相应的 GitHub Release 并附上 `v2board-deploy.zip` 与 `SHA256SUMS`。
+- 构建的 Docker 镜像目前为 Linux AMD64。首次执行须在仓库设置中允许 Actions 读取/写入 GitHub Packages。
+- 发行 ZIP 用于传统环境部署，不会自动安装 MySQL/Redis；Docker 全环境一键部署仍使用上面的 `docker/install.sh`。
+
+[查看构建工作流](.github/workflows/build-release.yml)
